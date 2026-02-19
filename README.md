@@ -8,7 +8,9 @@ Classifies the genre of music files (.wav) using ML models. Trained using the GT
 
 2. From the downloaded dataset, move the contents of genres_original (contains folders of .wav files) folder to Music-Genre-Classification/dataset folder. 
 
-3. Run MATLAB script:
+3. Navigate to Home -> Add-Ons -> Search for "Audio Toolbox" -> Install.
+
+4. Run MATLAB script:
    - `scripts/generate_mel_feature_csv.m`
 
 ## Feature Extraction Pipeline (MATLAB)
