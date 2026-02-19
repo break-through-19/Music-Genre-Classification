@@ -30,6 +30,12 @@ for folderIndex = 1:numel(genreFolders)
         wavNames = {wavFiles.name};
         isHiddenWav = cellfun(@(name) ~isempty(name) && name(1) == '.', wavNames);
         wavFiles = wavFiles(~isHiddenWav);
+
+        % Avoid duplicate entries on case-insensitive filesystems where
+        % '*.wav' and '*.WAV' can return the same files.
+        wavPaths = fullfile({wavFiles.folder}, {wavFiles.name});
+        [~, uniqueIdx] = unique(lower(wavPaths), 'stable');
+        wavFiles = wavFiles(uniqueIdx);
     end
 
     for wavIndex = 1:numel(wavFiles)

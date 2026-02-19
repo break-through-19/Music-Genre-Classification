@@ -1,3 +1,4 @@
+% Github repository link: https://github.com/break-through-19/Music-Genre-Classification
 % generate_mel_feature_csv.m
 % Build a Mel-spectrogram feature dataset CSV from genre-organized WAV files.
 %
@@ -11,8 +12,9 @@
 % - Each 30-second audio is split into 3-second segments (10 segments/file).
 % - Every segment becomes one row in the CSV.
 % - Metadata columns are included: class_name, wav_file_name, segment_index.
-% - Exactly 60 important features are written per segment:
-%   45 Mel-based features + 15 harmonic features.
+% - Exactly 16 important features are written per segment:
+%   4 spectral/timbral + 4 spectral variability +
+%   4 temporal dynamics + 4 harmonic features.
 % - Optional example CSV path can be provided to align final column ordering.
 
 clear;

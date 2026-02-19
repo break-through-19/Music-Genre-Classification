@@ -1,6 +1,6 @@
 # Music-Genre-Classification
 Classifies the genre of music files (.wav) using ML models. Trained using the GTZAN Dataset: https://www.kaggle.com/datasets/andradaolteanu/gtzan-dataset-music-genre-classification
-
+Repo linke: https://github.com/break-through-19/Music-Genre-Classification
 
 ## Steps to execute
 
@@ -21,9 +21,9 @@ The MATLAB pipeline is modular and organized as:
 - `src/pipeline/processDatasetToMelFeatureTable.m` : dataset traversal + orchestration.
 - `src/io/listGenreAudioFiles.m` : class/file discovery from folder structure.
 - `src/audio/splitAudioIntoFixedSegments.m` : 30s audio -> 3s segments.
-- `src/features/extractMelSpectrogramFeatureVector.m` : extract 60 important features (Mel + harmonic).
+- `src/features/extractMelSpectrogramFeatureVector.m` : extract 16 important features (4 per category).
 - `src/features/extractHarmonicFeatureVector.m` : compute harmonic feature block.
-- `src/features/getImportantMelFeatureNames.m` : fixed names for the 60 features.
+- `src/features/getImportantMelFeatureNames.m` : fixed names for the 16 features.
 - `src/io/buildFeatureRowTable.m` : metadata + feature row construction.
 - `src/io/alignColumnsToExampleCsv.m` : optional schema alignment with example CSV.
 
@@ -36,23 +36,23 @@ Included metadata columns:
 - `segment_index` (1-based segment id within each WAV file)
 
 Feature columns:
-- Mel features (45 total):
-  - `mean_log_mel_energy_band_01 ... mean_log_mel_energy_band_15`
-  - `std_log_mel_energy_band_01 ... std_log_mel_energy_band_15`
-  - `mean_abs_delta_log_mel_energy_band_01 ... mean_abs_delta_log_mel_energy_band_15`
-- Harmonic features (15 total):
+- Spectral/timbral level features (4):
+  - `timbral_log_mel_mean`
+  - `timbral_log_mel_median`
+  - `timbral_band_energy_spread`
+  - `timbral_frame_peak_mean`
+- Spectral variability features (4):
+  - `variability_log_mel_std_global`
+  - `variability_band_std_mean`
+  - `variability_frame_energy_std`
+  - `variability_band_range_mean`
+- Temporal dynamics features (4):
+  - `temporal_frame_energy_delta_abs_mean`
+  - `temporal_frame_energy_delta_std`
+  - `temporal_zero_crossing_rate_mean`
+  - `temporal_rms_std`
+- Harmonic features (4):
   - `harmonic_voiced_frame_ratio`
   - `harmonic_f0_mean_hz`
   - `harmonic_f0_std_hz`
-  - `harmonic_f0_median_hz`
-  - `harmonic_f0_iqr_hz`
-  - `harmonic_f0_min_hz`
-  - `harmonic_f0_max_hz`
-  - `harmonic_f0_range_hz`
-  - `harmonic_f0_slope_hz_per_frame`
-  - `harmonic_autocorr_peak_mean`
-  - `harmonic_autocorr_peak_std`
   - `harmonic_energy_ratio_mean`
-  - `harmonic_energy_ratio_std`
-  - `harmonic_peak_prominence_mean`
-  - `harmonic_peak_prominence_std`

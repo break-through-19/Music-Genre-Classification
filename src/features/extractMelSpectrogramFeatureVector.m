@@ -1,20 +1,18 @@
-function melFeatureVector = extractMelSpectrogramFeatureVector(audioSignal, sampleRate, options)
+function featureVector = extractMelSpectrogramFeatureVector(audioSignal, sampleRate, options)
 % extractMelSpectrogramFeatureVector
-% Compute 60 important features for one segment:
-% - 45 Mel-based features (15 bands x 3 statistics)
-% - 15 harmonic features
-%
-% Feature layout (60 total):
-% 1:15   -> mean log-Mel energy (15 representative Mel bands)
-% 16:30  -> std log-Mel energy  (same 15 Mel bands)
-% 31:45  -> mean absolute temporal delta (same 15 Mel bands)
-% 46:60  -> harmonic features (pitch/harmonicity descriptors)
+% Compute 16 features for one segment:
+% 1) spectral/timbral level features     -> 4
+% 2) spectral variability features       -> 4
+% 3) temporal dynamics features          -> 4
+% 4) harmonic features                   -> 4
 
 targetSampleRate = options.targetSampleRate;
 if sampleRate ~= targetSampleRate
     audioSignal = resample(audioSignal, targetSampleRate, sampleRate);
     sampleRate = targetSampleRate;
 end
+
+audioSignal = audioSignal(:);
 
 % Enforce fixed segment sample count so feature length is consistent.
 targetSegmentSamples = round(options.segmentDurationSeconds * sampleRate);
@@ -33,7 +31,6 @@ else
     analysisWindow = ones(windowLengthSamples, 1);
 end
 
-% This MATLAB version expects the actual window vector (Window), not WindowLength.
 melMatrix = melSpectrogram( ...
     audioSignal, ...
     sampleRate, ...
@@ -44,38 +41,101 @@ melMatrix = melSpectrogram( ...
     'FrequencyRange', [options.minFrequencyHz, options.maxFrequencyHz]);
 
 if options.useLogScale
-    % Stable log compression for improved numeric conditioning.
     melMatrix = log10(melMatrix + eps);
 end
 
-numImportantBands = 15;
-if size(melMatrix, 1) < numImportantBands
-    error('NumBands in melSpectrogram must be at least %d.', numImportantBands);
+if isempty(melMatrix)
+    error('Empty Mel spectrogram produced for segment.');
 end
 
-selectedBandIndices = round(linspace(1, size(melMatrix, 1), numImportantBands));
-selectedMelMatrix = melMatrix(selectedBandIndices, :);
+frameEnergy = mean(melMatrix, 1);
+deltaFrameEnergy = diff(frameEnergy);
 
-melBandMeans = mean(selectedMelMatrix, 2).';
-melBandStds = std(selectedMelMatrix, 0, 2).';
+% 1) spectral/timbral level features (4)
+timbralFeatures = [ ...
+    mean(melMatrix(:)), ...
+    median(melMatrix(:)), ...
+    std(mean(melMatrix, 2)), ...
+    mean(max(melMatrix, [], 1))];
 
-if size(selectedMelMatrix, 2) > 1
-    melTemporalDelta = diff(selectedMelMatrix, 1, 2);
-    melBandDeltaMeanAbs = mean(abs(melTemporalDelta), 2).';
+% 2) spectral variability features (4)
+bandRanges = max(melMatrix, [], 2) - min(melMatrix, [], 2);
+variabilityFeatures = [ ...
+    std(melMatrix(:)), ...
+    mean(std(melMatrix, 0, 2)), ...
+    std(frameEnergy), ...
+    mean(bandRanges)];
+
+% 3) temporal dynamics features (4)
+if isempty(deltaFrameEnergy)
+    deltaAbsMean = 0;
+    deltaStd = 0;
 else
-    melBandDeltaMeanAbs = zeros(1, numImportantBands);
+    deltaAbsMean = mean(abs(deltaFrameEnergy));
+    deltaStd = std(deltaFrameEnergy);
 end
 
-harmonicFeatureVector = extractHarmonicFeatureVector( ...
+temporalFeatures = [ ...
+    deltaAbsMean, ...
+    deltaStd, ...
+    localMeanZeroCrossingRate(audioSignal, windowLengthSamples, hopLengthSamples), ...
+    localFrameRmsStd(audioSignal, windowLengthSamples, hopLengthSamples)];
+
+% 4) harmonic features (4)
+harmonicFeatures = extractHarmonicFeatureVector( ...
     audioSignal, ...
     sampleRate, ...
     windowLengthSamples, ...
     hopLengthSamples, ...
     analysisWindow);
 
-melFeatureVector = [melBandMeans, melBandStds, melBandDeltaMeanAbs, harmonicFeatureVector];
+featureVector = [timbralFeatures, variabilityFeatures, temporalFeatures, harmonicFeatures];
 
-if numel(melFeatureVector) ~= 60
-    error('Expected 60 features, but got %d.', numel(melFeatureVector));
+if numel(featureVector) ~= 16
+    error('Expected 16 features, but got %d.', numel(featureVector));
 end
+end
+
+function meanZcr = localMeanZeroCrossingRate(audioSignal, windowLengthSamples, hopLengthSamples)
+numSamples = numel(audioSignal);
+if numSamples < windowLengthSamples
+    audioSignal = [audioSignal; zeros(windowLengthSamples - numSamples, 1)];
+    numSamples = numel(audioSignal);
+end
+
+frameStarts = 1:hopLengthSamples:(numSamples - windowLengthSamples + 1);
+numFrames = numel(frameStarts);
+zcrValues = zeros(numFrames, 1);
+
+for frameIndex = 1:numFrames
+    frameStart = frameStarts(frameIndex);
+    frameEnd = frameStart + windowLengthSamples - 1;
+    frameSignal = audioSignal(frameStart:frameEnd);
+
+    signChanges = abs(diff(sign(frameSignal)));
+    zcrValues(frameIndex) = sum(signChanges > 0) / max(windowLengthSamples - 1, 1);
+end
+
+meanZcr = mean(zcrValues);
+end
+
+function rmsStd = localFrameRmsStd(audioSignal, windowLengthSamples, hopLengthSamples)
+numSamples = numel(audioSignal);
+if numSamples < windowLengthSamples
+    audioSignal = [audioSignal; zeros(windowLengthSamples - numSamples, 1)];
+    numSamples = numel(audioSignal);
+end
+
+frameStarts = 1:hopLengthSamples:(numSamples - windowLengthSamples + 1);
+numFrames = numel(frameStarts);
+rmsValues = zeros(numFrames, 1);
+
+for frameIndex = 1:numFrames
+    frameStart = frameStarts(frameIndex);
+    frameEnd = frameStart + windowLengthSamples - 1;
+    frameSignal = audioSignal(frameStart:frameEnd);
+    rmsValues(frameIndex) = sqrt(mean(frameSignal .^ 2));
+end
+
+rmsStd = std(rmsValues);
 end
