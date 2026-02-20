@@ -1,6 +1,7 @@
 # Music-Genre-Classification
 Classifies the genre of music files (.wav) using ML models. Trained using the GTZAN Dataset: https://www.kaggle.com/datasets/andradaolteanu/gtzan-dataset-music-genre-classification
-Repo linke: https://github.com/break-through-19/Music-Genre-Classification
+
+Repo link: https://github.com/break-through-19/Music-Genre-Classification
 
 ## Steps to execute
 
