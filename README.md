@@ -14,6 +14,9 @@ Repo link: https://github.com/break-through-19/Music-Genre-Classification
 4. Run MATLAB script:
    - `scripts/generate_mel_feature_csv.m`
 
+5. To normalize the extracted feature CSV and generate 3D scatter plots:
+   - `scripts/normalize_and_plot_feature_space.m`
+
 ## Feature Extraction Pipeline (MATLAB)
 
 The MATLAB pipeline is modular and organized as:
@@ -27,9 +30,17 @@ The MATLAB pipeline is modular and organized as:
 - `src/features/getImportantMelFeatureNames.m` : fixed names for the 16 features.
 - `src/io/buildFeatureRowTable.m` : metadata + feature row construction.
 - `src/io/alignColumnsToExampleCsv.m` : optional schema alignment with example CSV.
+- `src/preprocessing/readFeatureDataset.m` : read and validate the feature CSV.
+- `src/preprocessing/meanCenterAndNormalizeFeatureTable.m` : mean-center and z-score normalize feature columns.
+- `src/visualization/getFeatureCategoryDefinitions.m` : define the four feature categories.
+- `src/visualization/generateCategory3DScatterPlots.m` : write category-wise 3D scatter plots.
 
 Output CSV:
 - `data/features/mel_spectrogram_features.csv`
+- `data/features/mel_spectrogram_features_normalized.csv`
+
+Generated plot folder:
+- `data/features/plots_3d_scatter`
 
 Included metadata columns:
 - `class_name` (from folder name)
