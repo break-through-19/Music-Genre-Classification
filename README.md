@@ -17,6 +17,15 @@ Repo link: https://github.com/break-through-19/Music-Genre-Classification
 5. To normalize the extracted feature CSV and generate 3D scatter plots:
    - `scripts/normalize_and_plot_feature_space.m`
 
+6. Navigate to Home -> Add-Ons -> Search for "Statistics and Machine Learning Toolbox" -> Install.
+
+7. To write PCA transformed features and train/test SVM models on original, PCA, and curated feature variants:
+   - `scripts/iteration4_svm.m`
+
+8. Navigate to Home -> Add-Ons -> Search for "Deep Learning Toolbox" -> Install. To train/test CRNN models on original, PCA, and curated feature variants:
+   - `scripts/crnn.m`
+
+
 ## Feature Extraction Pipeline (MATLAB)
 
 The MATLAB pipeline is modular and organized as:
@@ -41,6 +50,9 @@ Output CSV:
 
 Generated plot folder:
 - `data/features/plots_3d_scatter`
+
+CRNN output folder:
+- `data/model_outputs/crnn`
 
 Included metadata columns:
 - `class_name` (from folder name)
@@ -68,3 +80,21 @@ Feature columns:
   - `harmonic_f0_mean_hz`
   - `harmonic_f0_std_hz`
   - `harmonic_energy_ratio_mean`
+
+## Iteration 4 SVM Outputs
+
+Input CSV:
+- `data/features/mel_spectrogram_features_normalized.csv`
+
+Generated outputs from `scripts/iteration4_svm.m`:
+- PCA transformed feature CSV:
+  - `data/transformed_features/mel_spectrogram_features_pca_r4.csv`
+- Confusion matrix plots:
+  - `Iteration 4 plots/SVM_Phase1_Baseline.png`
+  - `Iteration 4 plots/SVM_Phase2_PCA.png`
+  - `Iteration 4 plots/SVM_Phase3_Curated.png`
+
+SVM experiment phases:
+- Phase 1: Baseline SVM on all 16 normalized features.
+- Phase 2: SVM on top-4 PCA components.
+- Phase 3: SVM on curated 14-feature set (drops `timbral_log_mel_median` and `variability_band_range_mean`).
