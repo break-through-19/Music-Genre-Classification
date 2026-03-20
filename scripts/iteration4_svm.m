@@ -1,21 +1,36 @@
 %% Iteration 4: SVM Classification (Baseline, PCA Space, and Curated Space)
 clear; clc; close all;
 
+% Resolve project paths relative to this script so execution is robust from any cwd.
+scriptPath = mfilename('fullpath');
+if isempty(scriptPath)
+    scriptDir = pwd;
+else
+    scriptDir = fileparts(scriptPath);
+end
+projectRoot = fileparts(scriptDir);
+dataCsvPath = fullfile(projectRoot, 'data', 'features', 'mel_spectrogram_features_normalized.csv');
+plotsDir = fullfile(projectRoot, 'Iteration 4 plots');
+transformedFeaturesDir = fullfile(projectRoot, 'data', 'transformed_features');
+
 % Set global theme for plots
 set(groot, 'defaultTextColor', 'k', 'defaultAxesXColor', 'k', ...
     'defaultAxesYColor', 'k', 'defaultTextFontWeight', 'bold', ...
     'defaultAxesFontWeight', 'bold');
 
 % Ensure the output folder exists for your Overleaf plots
-if ~exist('Iteration 4 plots', 'dir')
-    mkdir('Iteration 4 plots');
+if ~exist(plotsDir, 'dir')
+    mkdir(plotsDir);
+end
+
+if ~exist(transformedFeaturesDir, 'dir')
+    mkdir(transformedFeaturesDir);
 end
 
 %% 1. Load the Normalized Data
-filename = 'mel_spectrogram_features_normalized.csv'; 
-opts = detectImportOptions(filename);
+opts = detectImportOptions(dataCsvPath);
 opts.VariableNamingRule = 'preserve';
-T = readtable(filename, opts);
+T = readtable(dataCsvPath, opts);
 
 % Define Class Labels
 labels = categorical(T.class_name);
@@ -62,7 +77,7 @@ fprintf('Baseline Accuracy: %.2f%%\n\n', acc_baseline);
 % Plot and Save Confusion Matrix
 fig1 = figure('Name', 'Phase 1: Baseline Confusion Matrix', 'Color', 'w', 'Position', [100, 100, 700, 500]);
 confusionchart(y_test, pred_baseline, 'Title', sprintf('Phase 1: Baseline SVM (Acc: %.1f%%)', acc_baseline));
-exportgraphics(fig1, 'Iteration 4 plots/SVM_Phase1_Baseline.png', 'Resolution', 300);
+exportgraphics(fig1, fullfile(plotsDir, 'SVM_Phase1_Baseline.png'), 'Resolution', 300);
 
 
 %% Phase 2: The Transformed PCA Space (U_r)
@@ -74,6 +89,21 @@ Scores_full = U * S;
 % Truncate to the top r components (Based on the Scree Plot)
 r = 4; 
 Scores_truncated = Scores_full(:, 1:r);
+
+% Save PCA-transformed features (metadata + top-r components) for reuse.
+metadataColumns = {'class_name', 'wav_file_name', 'segment_index'};
+if all(ismember(metadataColumns, T.Properties.VariableNames))
+    metadataTable = T(:, metadataColumns);
+else
+    metadataTable = T(:, 1:3);
+end
+
+pcaComponentNames = arrayfun(@(k) sprintf('pca_component_%d', k), 1:r, 'UniformOutput', false);
+pcaFeatureTable = array2table(Scores_truncated, 'VariableNames', pcaComponentNames);
+pcaOutputTable = [metadataTable, pcaFeatureTable];
+pcaOutputCsvPath = fullfile(transformedFeaturesDir, sprintf('mel_spectrogram_features_pca_r%d.csv', r));
+writetable(pcaOutputTable, pcaOutputCsvPath);
+fprintf('Saved PCA transformed features to: %s\n', pcaOutputCsvPath);
 
 X_pca_train = Scores_truncated(idxTrain, :);
 X_pca_test  = Scores_truncated(idxTest, :);
@@ -89,7 +119,7 @@ fprintf('PCA Space Accuracy (r=%d): %.2f%%\n\n', r, acc_pca);
 % Plot and Save Confusion Matrix
 fig2 = figure('Name', 'Phase 2: PCA Confusion Matrix', 'Color', 'w', 'Position', [150, 150, 700, 500]);
 confusionchart(y_test, pred_pca, 'Title', sprintf('Phase 2: PCA SVM r=%d (Acc: %.1f%%)', r, acc_pca));
-exportgraphics(fig2, 'Iteration 4 plots/SVM_Phase2_PCA.png', 'Resolution', 300);
+exportgraphics(fig2, fullfile(plotsDir, 'SVM_Phase2_PCA.png'), 'Resolution', 300);
 
 
 %% Phase 3: The Curated Original Space
@@ -118,6 +148,6 @@ fprintf('Curated Space Accuracy: %.2f%%\n\n', acc_curated);
 % Plot and Save Confusion Matrix
 fig3 = figure('Name', 'Phase 3: Curated Confusion Matrix', 'Color', 'w', 'Position', [200, 200, 700, 500]);
 confusionchart(y_test, pred_curated, 'Title', sprintf('Phase 3: Curated SVM (Acc: %.1f%%)', acc_curated));
-exportgraphics(fig3, 'Iteration 4 plots/SVM_Phase3_Curated.png', 'Resolution', 300);
+exportgraphics(fig3, fullfile(plotsDir, 'SVM_Phase3_Curated.png'), 'Resolution', 300);
 
 fprintf('Plots saved to "Iteration 4 plots" folder.');
